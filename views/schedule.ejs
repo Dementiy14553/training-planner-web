@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Создать расписание</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f0f2f5; margin:0; padding:0; }
+        .header {
+            background: #1976D2; color: white; padding: 18px 25px; 
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .container { max-width: 900px; margin: 30px auto; padding: 0 25px; }
+        .day-row {
+            background: white; padding: 18px 25px; margin-bottom: 12px; border-radius: 10px;
+            display: flex; justify-content: space-between; align-items: center; 
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+        }
+        .day-name { font-weight: bold; font-size: 18px; width: 170px; }
+        select { padding: 10px 14px; font-size: 16px; border: 1px solid #ccc; border-radius: 8px; width: 420px; }
+        .btn-save {
+            background: #4CAF50; color: white; border: none; padding: 14px 40px; 
+            font-size: 18px; border-radius: 8px; cursor: pointer; margin-top: 30px;
+        }
+        .btn-back {
+            background: #1976D2; color: white; border: none; padding: 12px 25px; 
+            border-radius: 8px; cursor: pointer;
+        }
+        .error { color: red; text-align: center; margin: 20px 0; font-weight: bold; }
+        .info { color: #666; text-align: center; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>Создание расписания на неделю</h2>
+        <button class="btn-back" onclick="goBack()">← Назад в меню</button>
+    </div>
+
+    <div class="container">
+        <div id="error" class="error"></div>
+        <div id="info" class="info"></div>
+        <div id="daysList">Загрузка расписания...</div>
+        <button class="btn-save" onclick="saveSchedule()">Сохранить расписание</button>
+    </div>
+
+    <script>
+        const token = new URLSearchParams(window.location.search).get('token');
+
+        const days = ["Понедельник","Вторник","Среда","Четверг","Пятница","Суббота","Воскресенье"];
+
+        async function loadData() {
+            if (!token) {
+                document.getElementById('error').innerHTML = 'Нет токена авторизации';
+                return;
+            }
+
+            document.getElementById('info').innerHTML = `Токен найден: ${token.substring(0,15)}...`;
+
+            try {
+                document.getElementById('info').innerHTML += '<br>→ Запрашиваем тренировки...';
+                const workoutsRes = await fetch(`/api/workouts?token=${token}`);
+                const workouts = await workoutsRes.json();
+                document.getElementById('info').innerHTML += `<br>✓ Тренировок загружено: ${workouts.length}`;
+
+                document.getElementById('info').innerHTML += '<br>→ Запрашиваем расписание...';
+                const scheduleRes = await fetch(`/api/schedule?token=${token}`);
+                const scheduleData = await scheduleRes.json();
+                document.getElementById('info').innerHTML += `<br>✓ Расписание загружено: ${scheduleData.length} записей`;
+
+                let currentSchedule = {};
+                scheduleData.forEach(item => {
+                    currentSchedule[item.day] = item.workoutId;
+                });
+
+                let html = '';
+                days.forEach((day, index) => {
+                    const dayKey = day.toLowerCase();
+                    const selectedId = currentSchedule[dayKey] || null;
+
+                    let options = `<option value="rest" ${selectedId === null ? 'selected' : ''}>Отдых</option>`;
+
+                    workouts.forEach(w => {
+                        options += `<option value="${w.id}" ${Number(selectedId) === w.id ? 'selected' : ''}>${w.name}</option>`;
+                    });
+
+                    html += `
+                        <div class="day-row">
+                            <div class="day-name">${day}</div>
+                            <select id="day-${index}">
+                                ${options}
+                            </select>
+                        </div>`;
+                });
+
+                document.getElementById('daysList').innerHTML = html;
+                document.getElementById('error').innerHTML = '';
+                document.getElementById('info').innerHTML = '';
+
+            } catch (e) {
+                console.error(e);
+                document.getElementById('error').innerHTML = `Ошибка загрузки: ${e.message || e}`;
+                document.getElementById('daysList').innerHTML = '';
+            }
+        }
+
+        async function saveSchedule() {
+            if (!token) return alert('Нет токена');
+
+            const scheduleData = {};
+
+            days.forEach((day, i) => {
+                const select = document.getElementById(`day-${i}`);
+                if (select) {
+                    const value = select.value;
+                    scheduleData[day.toLowerCase()] = (value === "rest") ? null : parseInt(value);
+                }
+            });
+
+            try {
+                const res = await fetch(`/schedule?token=${token}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ days: scheduleData })
+                });
+
+                if (res.ok) {
+                    alert('✅ Расписание успешно сохранено!');
+                    goBack();
+                } else {
+                    alert('Ошибка при сохранении');
+                }
+            } catch (err) {
+                alert('Ошибка соединения с сервером');
+            }
+        }
+
+        function goBack() {
+            window.location.href = token ? `/dashboard?token=${token}` : '/';
+        }
+
+        window.onload = loadData;
+    </script>
+</body>
+</html>

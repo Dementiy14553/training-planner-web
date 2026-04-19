@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Подписка истекла</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f2f5;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .card {
+            background: white;
+            padding: 50px 60px;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            text-align: center;
+            max-width: 480px;
+            width: 100%;
+        }
+        h1 { 
+            color: #d32f2f; 
+            margin-bottom: 10px;
+        }
+        p { 
+            font-size: 18px; 
+            color: #555; 
+            margin: 20px 0 30px;
+        }
+        .price {
+            font-size: 48px;
+            font-weight: bold;
+            color: #1976D2;
+            margin: 20px 0;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 16px 60px;
+            font-size: 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Ваша подписка истекла</h1>
+        <p>Чтобы продолжить пользоваться приложением, оформите подписку.</p>
+        
+        <div class="price">1 ₽</div>
+        <p>за 30 дней полного доступа</p>
+
+        <button onclick="paySubscription()">Оплатить 1 ₽ через ЮKassa</button>
+        
+        <p style="margin-top: 40px; font-size: 14px; color: #888;">
+            После оплаты подписка активируется автоматически
+        </p>
+    </div>
+
+    <script>
+        function paySubscription() {
+            const token = localStorage.getItem('authToken');
+            window.location.href = `/pay?token=${token}`;
+        }
+    </script>
+</body>
+</html>

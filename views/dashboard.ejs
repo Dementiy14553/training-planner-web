@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f2f5;
+            margin: 0;
+            padding: 0;
+        }
+        .header {
+            background: #1976D2;
+            color: white;
+            padding: 15px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .subscription-status {
+            font-size: 15px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.25);
+        }
+        .status-active {
+            background: rgba(76, 175, 80, 0.4);
+        }
+        .status-expired {
+            background: rgba(211, 47, 47, 0.4);
+        }
+        .container {
+            max-width: 1100px;
+            margin: 40px auto;
+            padding: 0 25px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 25px;
+        }
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-8px);
+        }
+        .icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-left">
+            <h2>Добро пожаловать, <%= userName %>!</h2>
+            <span id="subscriptionStatus" class="subscription-status">Загрузка...</span>
+        </div>
+        <button onclick="logout()" style="background:#fff; color:#1976D2; border:none; padding:10px 20px; border-radius:8px; cursor:pointer;">Выйти</button>
+    </div>
+
+    <div class="container">
+        <div class="card" onclick="goTo('create-workout')">
+            <div class="icon">🏋️</div>
+            <h3>Создать тренировку</h3>
+            <p>Добавьте новую тренировку с упражнениями</p>
+        </div>
+
+        <div class="card" onclick="goTo('schedule')">
+            <div class="icon">📅</div>
+            <h3>Создать расписание</h3>
+            <p>Распределите тренировки по дням недели</p>
+        </div>
+
+        <div class="card" onclick="goTo('view-schedule')">
+            <div class="icon">📋</div>
+            <h3>Просмотр расписания</h3>
+            <p>Посмотрите своё расписание на неделю</p>
+        </div>
+
+        <div class="card" onclick="goTo('progress')">
+            <div class="icon">📊</div>
+            <h3>Мой прогресс</h3>
+            <p>Отслеживайте вес и динамику</p>
+        </div>
+    </div>
+
+    <script>
+        function goTo(page) {
+            const token = localStorage.getItem('authToken');
+            window.location.href = `/${page}?token=${token}`;
+        }
+
+        function logout() {
+            localStorage.removeItem('authToken');
+            window.location.href = '/';
+        }
+
+        async function loadSubscriptionStatus() {
+            const token = localStorage.getItem('authToken');
+            if (!token) return;
+
+            try {
+                const res = await fetch(`/api/subscription-status?token=${token}`);
+                const data = await res.json();
+
+                const statusEl = document.getElementById('subscriptionStatus');
+
+                if (data.active) {
+                    statusEl.innerHTML = `✅ Активна до ${data.end_date} (${data.days_left} дней)`;
+                    statusEl.classList.add('status-active');
+                } else {
+                    statusEl.innerHTML = `❌ Подписка истекла`;
+                    statusEl.classList.add('status-expired');
+                }
+            } catch (e) {
+                document.getElementById('subscriptionStatus').innerHTML = 'Ошибка загрузки';
+            }
+        }
+
+        window.onload = loadSubscriptionStatus;
+    </script>
+</body>
+</html>

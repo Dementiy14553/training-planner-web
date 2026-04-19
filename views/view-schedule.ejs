@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Просмотр расписания</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f0f2f5; margin:0; padding:0; }
+        .header {
+            background: #1976D2; color: white; padding: 18px 25px; display: flex; justify-content: space-between; align-items: center;
+        }
+        .container { max-width: 1000px; margin: 30px auto; padding: 0 25px; }
+        .day-card {
+            background: white;
+            padding: 18px 25px;
+            margin-bottom: 12px;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+            cursor: pointer;
+        }
+        .day-name { font-weight: bold; font-size: 18px; }
+        .workout-name { font-size: 16px; color: #1976D2; margin-top: 8px; }
+        .exercises-list { margin-top: 15px; padding-left: 20px; display: none; }
+        .exercise-item { padding: 8px 0; border-bottom: 1px solid #eee; }
+        .btn-back {
+            background: #1976D2; color: white; border: none; padding: 12px 25px; border-radius: 8px; cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>Моё расписание на неделю</h2>
+        <button class="btn-back" onclick="goBack()">← Назад в меню</button>
+    </div>
+
+    <div class="container">
+        <div id="scheduleContainer">Загрузка расписания...</div>
+    </div>
+
+    <script>
+        async function loadSchedule() {
+            const token = localStorage.getItem('authToken');
+            try {
+                const res = await fetch(`/api/schedule/view?token=${token}`);
+                const schedule = await res.json();
+
+                let html = '';
+                schedule.forEach(item => {
+                    html += `
+                        <div class="day-card" onclick="toggleExercises(this, ${item.workoutId})">
+                            <div class="day-name">${item.day}</div>
+                            <div class="workout-name">${item.workoutName}</div>
+                            <div class="exercises-list" id="ex-${item.day}"></div>
+                        </div>`;
+                });
+
+                document.getElementById('scheduleContainer').innerHTML = html || '<p>Расписание пока пустое</p>';
+            } catch (e) {
+                document.getElementById('scheduleContainer').innerHTML = '<p style="color:red">Ошибка загрузки расписания</p>';
+            }
+        }
+
+        async function toggleExercises(card, workoutId) {
+            const list = card.querySelector('.exercises-list');
+            if (list.style.display === 'block') {
+                list.style.display = 'none';
+                return;
+            }
+
+            if (!workoutId) {
+                list.innerHTML = '<p style="color:gray">День отдыха</p>';
+                list.style.display = 'block';
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('authToken');
+                const res = await fetch(`/api/workout/${workoutId}?token=${token}`);
+                const exercises = await res.json();
+
+                let html = '<b>Упражнения:</b><br>';
+                exercises.forEach(ex => {
+                    html += `<div class="exercise-item">• ${ex.name} — ${ex.details || 'без деталей'}</div>`;
+                });
+
+                list.innerHTML = html || '<p>Упражнений нет</p>';
+                list.style.display = 'block';
+            } catch (e) {
+                list.innerHTML = '<p style="color:red">Ошибка загрузки упражнений</p>';
+                list.style.display = 'block';
+            }
+        }
+
+        function goBack() {
+            const token = localStorage.getItem('authToken');
+            window.location.href = token ? `/dashboard?token=${token}` : '/';
+        }
+
+        window.onload = loadSchedule;
+    </script>
+</body>
+</html>
